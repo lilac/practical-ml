@@ -1,12 +1,5 @@
 type 'a thunk = unit -> 'a
 
-type virtual_shape = {
-  area: real thunk,
-  draw: unit thunk
-}
-
-type 'a shape = 'a -> virtual_shape
-
 fun bind (f: 'a -> 'b) (a: 'a): 'b thunk =
   fn () => f a
 
@@ -28,7 +21,7 @@ structure RectangleShape : SHAPE = struct
 
   fun area {x, y, w, h} = w * h : real
 
-  fun draw {x, y, w, h} = print ("rect@(" ^ Real.toString x ^ ")")
+  fun draw {x, y, w, h} = print ("rect@(" ^ Real.toString x ^ ")\n")
 end
 
 structure Circle : SHAPE = struct
@@ -36,12 +29,26 @@ structure Circle : SHAPE = struct
   val default: t = {x = 0.0, y = 0.0, r = 0.0}
 
   fun area {x, y, r} = 2.0 * Math.pi * r * r
-  fun draw {x, y, r} = print ("circle@(" ^ Real.toString x ^ ")")
+  fun draw {x, y, r} = print ("circle@(" ^ Real.toString x ^ ")\n")
+end
+
+structure AShape =
+struct
+  type t = {
+    area: real thunk,
+    draw: unit thunk
+  }
+
+  fun area (s: t): real =
+    #area s ()
+
+  fun draw (s: t) =
+    #draw s ()
 end
 
 functor AsShape (S: SHAPE) =
 struct
-  val from: S.t shape = fn it => {
+  fun from (it: S.t): AShape.t = {
     area = bind S.area it,
     draw = bind S.draw it
   }
@@ -50,15 +57,8 @@ end
 structure RectAsShape = AsShape(RectangleShape)
 structure CircleAsShape = AsShape(Circle)
 
-val rectShape: Rectangle.t shape = fn it => {
-  area = bind RectangleShape.area it,
-  draw = bind RectangleShape.draw it
-}
-
-val circleShape: Circle.t shape = fn it => {
-  area = fn () => Circle.area it,
-  draw = fn () => Circle.draw it
-}
+val rectShape = RectAsShape.from
+val circleShape = CircleAsShape.from
 
 val shapes = [
   rectShape Rectangle.default,
@@ -67,9 +67,6 @@ val shapes = [
   circleShape {x = 0.0, y = 0.0, r = 2.0} (*{Circle.default where r = 2.0}*)
 ]
 
-fun area (s: virtual_shape): real =
-  #area s ()
-
-
-val areas = List.map area shapes
+val areas = List.map AShape.area shapes
+val _ = List.map AShape.draw shapes
 
