@@ -19,8 +19,8 @@ struct
     | _ => NONE
 end
 
-structure AnyInt = Any(struct type t = int end)
-structure AnyReal = Any(struct type t = real end)
+structure AnyInt = Any(type t = int)
+structure AnyReal = Any(type t = real)
 
 val anys = [
   AnyInt.from 1,
